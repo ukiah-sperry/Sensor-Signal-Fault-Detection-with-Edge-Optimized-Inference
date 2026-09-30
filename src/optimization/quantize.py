@@ -81,6 +81,12 @@ def run_benchmark(model: FaultMLP, tmp_dir: str | Path = "/tmp") -> dict:
 
 
 def print_benchmark(results: dict) -> None:
+    speedup = results["latency_speedup"]
+    latency_note = (
+        f"{speedup:.2f}x faster"
+        if speedup >= 1.0
+        else f"{1/speedup:.2f}x slower (dequantization overhead dominates on small models)"
+    )
     print("\n=== Edge Optimization Benchmark (CPU-only, no GPU) ===")
     print(f"{'Metric':<30} {'Full Precision':>15} {'Quantized (int8)':>17}")
     print("-" * 64)
@@ -88,6 +94,10 @@ def print_benchmark(results: dict) -> None:
     print(f"{'Inference latency (ms)':<30} {results['full_latency_ms']:>15.4f} {results['quant_latency_ms']:>17.4f}")
     print("-" * 64)
     print(f"Size reduction:     {results['size_reduction_pct']:.1f}%")
-    print(f"Latency speedup:    {results['latency_speedup']:.2f}x")
+    print(f"Latency change:     {latency_note}")
     print("\nNote: benchmarked on CPU only — simulates edge device constraints.")
     print("No GPU used. No embedded hardware deployment.")
+    if speedup < 1.0:
+        print("Latency increase is expected for small models: int8 weight-only")
+        print("quantization adds dequantization overhead that outweighs compute savings")
+        print("at this model size. Size reduction (flash/RAM savings) is the primary benefit.")

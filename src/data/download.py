@@ -1,6 +1,7 @@
 """Download a curated CWRU bearing dataset subset."""
-import urllib.request
 from pathlib import Path
+
+import requests
 
 BASE_URL = "https://engineering.case.edu/sites/default/files"
 
@@ -37,7 +38,20 @@ def download_dataset(dest_dir: str | Path = "data") -> list[dict]:
         if not dest_path.exists():
             url = f"{BASE_URL}/{filename}"
             print(f"Downloading {desc} ({filename})...")
-            urllib.request.urlretrieve(url, dest_path)
+            for attempt in range(1, 4):
+                try:
+                    response = requests.get(url, stream=True, timeout=60)
+                    response.raise_for_status()
+                    with open(dest_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=65536):
+                            f.write(chunk)
+                    break
+                except Exception as e:
+                    dest_path.unlink(missing_ok=True)
+                    if attempt == 3:
+                        print(f"  Failed after 3 attempts: {e}")
+                    else:
+                        print(f"  Attempt {attempt} failed, retrying...")
         records.append({
             "path": str(dest_path),
             "label": label,
