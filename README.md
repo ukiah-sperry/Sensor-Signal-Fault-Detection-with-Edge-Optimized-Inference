@@ -55,14 +55,19 @@ Feature extraction:
 
 ## Results
 
-### Classification (test set, 80/20 split)
+### Classification (grouped train/test split by source recording)
+
+Train: 0HP + 1HP recordings per class (8 files, 1422 windows)  
+Test: 2HP recordings per class (4 files, 827 windows) — different RPM from training data
 
 | Model | Accuracy | Normal recall | Inner recall | Ball recall | Outer recall |
 |-------|----------|--------------|-------------|------------|-------------|
 | RandomForest | 100.0% | 100% | 100% | 100% | 100% |
 | PyTorch MLP  | 100.0% | 100% | 100% | 100% | 100% |
 
-CWRU bearing data is well-separated in frequency space — fault signatures are distinct peaks in the FFT spectrum, so both models classify cleanly. Per-class recall is reported rather than just overall accuracy because missing a real fault (false negative) is a worse error than a false alarm in predictive maintenance contexts.
+The train/test split holds out **entire source recordings** — all windows from a given .mat file stay on one side. Splitting randomly by individual window would leak: adjacent windows from the same recording end up on both sides, inflating accuracy artificially. The 100% result is legitimate: CWRU bearing data is a well-known "easy" benchmark because bearing fault signatures (BPFI, BPFO, BSF frequencies) produce sharp, class-specific peaks in the FFT spectrum. Published papers routinely report >99% on CWRU with simple classifiers.
+
+Per-class recall is reported alongside overall accuracy because missing a real fault (false negative) is a worse error than a false alarm in predictive maintenance contexts.
 
 ### Edge Optimization Benchmark (CPU-only, no GPU)
 

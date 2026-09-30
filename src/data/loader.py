@@ -31,14 +31,20 @@ def segment_signal(signal: np.ndarray, window_size: int = 1024) -> np.ndarray:
 
 def load_windows_and_labels(
     records: list[dict], window_size: int = 1024
-) -> tuple[np.ndarray, np.ndarray]:
-    """Load all records, segment into windows, return (X, y).
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Load all records, segment into windows, return (X, y, file_ids).
 
-    X shape: (total_windows, window_size)
-    y shape: (total_windows,) — integer label 0-3
+    X shape:        (total_windows, window_size)
+    y shape:        (total_windows,) — integer label 0-3
+    file_ids shape: (total_windows,) — integer index into records list
+
+    file_ids is required for a leakage-free train/test split: all windows
+    from the same source recording must stay on the same side of the split.
+    Splitting on individual windows without grouping by file causes adjacent
+    windows from the same recording to appear in both train and test.
     """
-    X_parts, y_parts = [], []
-    for rec in records:
+    X_parts, y_parts, file_id_parts = [], [], []
+    for file_idx, rec in enumerate(records):
         try:
             signal = load_mat_file(rec["path"])
         except Exception as e:
@@ -47,4 +53,5 @@ def load_windows_and_labels(
         windows = segment_signal(signal, window_size=window_size)
         X_parts.append(windows)
         y_parts.append(np.full(len(windows), rec["label_id"], dtype=np.int64))
-    return np.vstack(X_parts), np.concatenate(y_parts)
+        file_id_parts.append(np.full(len(windows), file_idx, dtype=np.int64))
+    return np.vstack(X_parts), np.concatenate(y_parts), np.concatenate(file_id_parts)
