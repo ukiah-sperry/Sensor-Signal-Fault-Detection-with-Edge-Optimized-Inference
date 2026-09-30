@@ -66,3 +66,31 @@ def test_evaluate_per_class_recall(synthetic_dataset):
     results = evaluate_classifier(model, X, y)
     assert "per_class_recall" in results
     assert len(results["per_class_recall"]) == 4
+
+
+# --- PyTorch MLP tests ---
+
+import torch
+from src.models.neural import FaultMLP, train_mlp, predict_mlp
+
+
+def test_mlp_forward_shape():
+    """MLP output shape matches n_classes."""
+    model = FaultMLP(input_dim=516, hidden_dim=64, n_classes=4)
+    x = torch.randn(8, 516)
+    out = model(x)
+    assert out.shape == (8, 4)
+
+
+def test_mlp_trains_without_error(synthetic_dataset):
+    X, y = synthetic_dataset
+    model = train_mlp(X, y, epochs=5, lr=1e-3)
+    assert isinstance(model, FaultMLP)
+
+
+def test_mlp_predict_returns_labels(synthetic_dataset):
+    X, y = synthetic_dataset
+    model = train_mlp(X, y, epochs=5, lr=1e-3)
+    preds = predict_mlp(model, X)
+    assert preds.shape == y.shape
+    assert set(preds).issubset({0, 1, 2, 3})
